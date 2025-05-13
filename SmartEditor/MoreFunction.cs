@@ -1,9 +1,12 @@
 ﻿using System.Data;
+using System.Reflection;
 using ADOFAI;
 using ADOFAI.LevelEditor.Controls;
 using JALib.Core;
 using JALib.Core.Patch;
+using JALib.Tools;
 using NCalc;
+using TMPro;
 using UnityEngine;
 
 namespace SmartEditor;
@@ -18,7 +21,7 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction)) {
     }
 
     [JAPatch(typeof(PropertyControl_Text), "Validate", PatchType.Replace, false)]
-    public static string PatchEntry(PropertyControl_Text __instance)
+    public static string TextPatchEntry(PropertyControl_Text __instance)
     {
         if (__instance.propertyInfo == null)
             return __instance.inputField.text;
@@ -63,5 +66,49 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction)) {
             }
         }
         return num1.ToString();
+    }
+    [JAPatch(typeof(PropertyControl_Vector2), "Validate", PatchType.Replace, false)]
+    public static (string, string) Vector2PatchEntry(PropertyControl_Vector2 __instance, Vector2 lastValue, TMP_InputField ___x, TMP_InputField ___y) {
+        Vector2 vector2 = new Vector2(lastValue.x, lastValue.y);
+        MethodInfo convertEmptyToNaN = typeof(PropertyControl_Vector2).Method("ConvertEmptyToNaN");
+        string naN1 = (string)convertEmptyToNaN.Invoke(null, new object[] { ___x.text });
+        string naN2 = (string)convertEmptyToNaN.Invoke(null, new object[] { ___y.text });
+        float result1;
+        float result2;
+        if (float.TryParse(naN1, out result1) && float.TryParse(naN2, out result2))
+        {
+            vector2 = new Vector2(result1, result2);
+            vector2 = __instance.propertyInfo.Validate(vector2, __instance.propertiesPanel.inspectorPanel.selectedEvent.isFake);
+        }
+        else
+        {
+            DataTable dataTable = new DataTable();
+            try
+            {
+                object dictValue = new Expression(naN1).Evaluate();
+                vector2.x = RDEditorUtils.DecodeFloat(dictValue);
+            }
+            catch
+            {
+            }
+            try
+            {
+                object dictValue = new Expression(naN2).Evaluate();
+                vector2.y = RDEditorUtils.DecodeFloat(dictValue);
+            }
+            catch
+            {
+            }
+        }
+        if (__instance.propertiesPanel.inspectorPanel.selectedEvent.eventType == LevelEventType.AddDecoration && __instance.propertyInfo.name == "tile")
+        {
+            vector2.x = (float) Mathf.RoundToInt(vector2.x);
+            vector2.y = (float) Mathf.RoundToInt(vector2.y);
+        }
+        MethodInfo convertNaNToEmpty = typeof(PropertyControl_Vector2).Method("ConvertNaNToEmpty");
+        return (
+                   (string)convertNaNToEmpty.Invoke(__instance, new object[] { vector2.x.ToString("0.######") }),
+                   (string)convertNaNToEmpty.Invoke(__instance, new object[] { vector2.y.ToString("0.######") })
+               );
     }
 }
