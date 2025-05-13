@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace SmartEditor;
 
-public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction)) {
+public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patchClass: typeof(MoreFunction)) {
     protected override void OnEnable() {
         base.OnEnable();
     }
