@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Data;
-using System.Reflection;
+using System.Text.RegularExpressions;
 using ADOFAI;
 using ADOFAI.LevelEditor.Controls;
 using JALib.Core;
 using JALib.Core.Patch;
-using JALib.Tools;
 using NCalc;
 using SmartEditor.FixLoad.CustomSaveState;
 using TMPro;
@@ -36,11 +35,10 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             {
                 num = __instance.propertyInfo.Validate(result);
             }
-            else
-            {
+            else {
                 try 
                 {
-                    num = __instance.propertyInfo.Validate(RDEditorUtils.DecodeFloat(new Expression(__instance.inputField.text).Evaluate()));
+                    num = __instance.propertyInfo.Validate(RDEditorUtils.DecodeFloat(new Expression(RangeToRandom(__instance.inputField.text)).Evaluate()));
                 }
                 catch (Exception e) {
                     Main.Instance.LogException(e);
@@ -61,7 +59,7 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
         {
             try
             {
-                num1 = RDEditorUtils.DecodeInt(new Expression(__instance.inputField.text).Evaluate());
+                num1 = RDEditorUtils.DecodeInt(new Expression(RangeToRandom(__instance.inputField.text)).Evaluate());
             }
             catch (Exception e) {
                 Main.Instance.LogException(e);
@@ -88,7 +86,7 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             DataTable dataTable = new DataTable();
             try
             {
-                object dictValue = new Expression(naN1).Evaluate();
+                object dictValue = new Expression(RangeToRandom(naN1)).Evaluate();
                 Main.Instance.Log(dictValue);
                 vector2.x = RDEditorUtils.DecodeFloat(dictValue);
             }
@@ -97,7 +95,7 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             }
             try
             {
-                object dictValue = new Expression(naN2).Evaluate();
+                object dictValue = new Expression(RangeToRandom(naN2)).Evaluate();
                 Main.Instance.Log(dictValue);
                 vector2.y = RDEditorUtils.DecodeFloat(dictValue);
             }
@@ -111,5 +109,39 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             vector2.y = (float) Mathf.RoundToInt(vector2.y);
         }
         return (FixPrivateMethod.ConvertNaNToEmpty(vector2.x.ToString("0.######")), FixPrivateMethod.ConvertNaNToEmpty(vector2.y.ToString("0.######")));
+    }
+    public static string RangeToRandom(string input) {
+        var pattern = @"-?\d+(\.\d+)?\s*~\s*-?\d+(\.\d+)?";
+        return Regex.Replace(input, pattern, match => {
+            var range = match.Value;
+            var parts = range.Split('~');
+            string minStr = parts[0].Trim();
+            string maxStr = parts[1].Trim();
+            float min = float.Parse(minStr);
+            float max = float.Parse(maxStr);
+            if (min > max) {
+                float temp = min;
+                min = max;
+                max = temp;
+            }
+            var rnd = new System.Random();
+            int decimalPlaces = Math.Max(GetDecimalPlaces(minStr), GetDecimalPlaces(maxStr));
+            if (decimalPlaces == 0) {
+                int result = rnd.Next((int)min, (int)max + 1);
+                return result.ToString();
+            } else {
+                int factor = (int)Math.Pow(10, decimalPlaces);
+                int minInt = (int)Math.Round(min * factor);
+                int maxInt = (int)Math.Round(max * factor);
+                int result = rnd.Next(minInt, maxInt + 1);
+                float finalResult = result / (float)factor;
+                return finalResult.ToString($"F{decimalPlaces}");
+            }
+        });
+    }
+    public static int GetDecimalPlaces(string s) {
+        var dotIndex = s.IndexOf('.');
+        if (dotIndex == -1) return 0;
+        return s.Length - dotIndex - 1;
     }
 }
