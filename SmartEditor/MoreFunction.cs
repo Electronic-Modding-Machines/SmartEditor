@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Reflection;
 using ADOFAI;
 using ADOFAI.LevelEditor.Controls;
@@ -6,6 +7,7 @@ using JALib.Core;
 using JALib.Core.Patch;
 using JALib.Tools;
 using NCalc;
+using SmartEditor.FixLoad.CustomSaveState;
 using TMPro;
 using UnityEngine;
 
@@ -23,6 +25,7 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
     [JAPatch(typeof(PropertyControl_Text), "Validate", PatchType.Replace, false)]
     public static string TextPatchEntry(PropertyControl_Text __instance)
     {
+        Main.Instance.Log("Test1 PropertyControl_Text");
         if (__instance.propertyInfo == null)
             return __instance.inputField.text;
         if (__instance.propertyInfo.type == PropertyType.Float)
@@ -35,12 +38,12 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             }
             else
             {
-                try
+                try 
                 {
                     num = __instance.propertyInfo.Validate(RDEditorUtils.DecodeFloat(new Expression(__instance.inputField.text).Evaluate()));
                 }
-                catch
-                {
+                catch (Exception e) {
+                    Main.Instance.LogException(e);
                     num = (float) __instance.propertyInfo.value_default;
                 }
             }
@@ -60,19 +63,19 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             {
                 num1 = RDEditorUtils.DecodeInt(new Expression(__instance.inputField.text).Evaluate());
             }
-            catch
-            {
+            catch (Exception e) {
+                Main.Instance.LogException(e);
                 num1 = (int) __instance.propertyInfo.value_default;
             }
         }
         return num1.ToString();
     }
     [JAPatch(typeof(PropertyControl_Vector2), "Validate", PatchType.Replace, false)]
-    public static (string, string) Vector2PatchEntry(PropertyControl_Vector2 __instance, Vector2 lastValue, TMP_InputField ___x, TMP_InputField ___y) {
-        Vector2 vector2 = new Vector2(lastValue.x, lastValue.y);
-        MethodInfo convertEmptyToNaN = typeof(PropertyControl_Vector2).Method("ConvertEmptyToNaN");
-        string naN1 = (string)convertEmptyToNaN.Invoke(null, new object[] { ___x.text });
-        string naN2 = (string)convertEmptyToNaN.Invoke(null, new object[] { ___y.text });
+    public static (string, string) Vector2PatchEntry(PropertyControl_Vector2 __instance, Vector2 ___lastValue, TMP_InputField x, TMP_InputField y) {
+        Main.Instance.Log("Test2 PropertyControl_Vector2");
+        Vector2 vector2 = new Vector2(___lastValue.x, ___lastValue.y);
+        string naN1 = FixPrivateMethod.ConvertEmptyToNaN(x.text);
+        string naN2 = FixPrivateMethod.ConvertEmptyToNaN(y.text);
         float result1;
         float result2;
         if (float.TryParse(naN1, out result1) && float.TryParse(naN2, out result2))
@@ -86,18 +89,20 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             try
             {
                 object dictValue = new Expression(naN1).Evaluate();
+                Main.Instance.Log(dictValue);
                 vector2.x = RDEditorUtils.DecodeFloat(dictValue);
             }
-            catch
-            {
+            catch (Exception e) {
+                Main.Instance.LogException(e);
             }
             try
             {
                 object dictValue = new Expression(naN2).Evaluate();
+                Main.Instance.Log(dictValue);
                 vector2.y = RDEditorUtils.DecodeFloat(dictValue);
             }
-            catch
-            {
+            catch (Exception e) {
+                Main.Instance.LogException(e);
             }
         }
         if (__instance.propertiesPanel.inspectorPanel.selectedEvent.eventType == LevelEventType.AddDecoration && __instance.propertyInfo.name == "tile")
@@ -105,10 +110,6 @@ public class MoreFunction() : Feature(Main.Instance, nameof(MoreFunction), patch
             vector2.x = (float) Mathf.RoundToInt(vector2.x);
             vector2.y = (float) Mathf.RoundToInt(vector2.y);
         }
-        MethodInfo convertNaNToEmpty = typeof(PropertyControl_Vector2).Method("ConvertNaNToEmpty");
-        return (
-                   (string)convertNaNToEmpty.Invoke(__instance, new object[] { vector2.x.ToString("0.######") }),
-                   (string)convertNaNToEmpty.Invoke(__instance, new object[] { vector2.y.ToString("0.######") })
-               );
+        return (FixPrivateMethod.ConvertNaNToEmpty(vector2.x.ToString("0.######")), FixPrivateMethod.ConvertNaNToEmpty(vector2.y.ToString("0.######")));
     }
 }
