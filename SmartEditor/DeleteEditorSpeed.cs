@@ -12,86 +12,64 @@ using UnityEngine.UI;
 namespace SmartEditor;
 
 public class DeleteEditorSpeed() : Feature(Main.Instance, nameof(DeleteEditorSpeed), patchClass: typeof(DeleteEditorSpeed)) {
-    protected override void OnEnable() {
-        base.OnEnable();
-    }
-    
-    protected override void OnDisable() {
-        base.OnDisable();
-    }
-
     [JAPatch(typeof(scnEditor), "Update", PatchType.Replace, false)]
-    public static void scnEditor_Update(scnEditor __instance, bool ___refreshBgSprites, bool ___refreshDecSprites, float ___backupTimer) {
-        if ((UnityEngine.Object)scnGame.instance == (UnityEngine.Object)null || ADOBase.controller.pauseMenu.gameObject.activeSelf) 
-            return;
-        if (ADOBase.controller.paused && AsyncInputManager.isActive)
-            ADOBase.controller.UpdateInput();
+    public static void scnEditor_Update(scnEditor __instance, bool ___refreshBgSprites, bool ___refreshDecSprites, ref float ___backupTimer) {
+        if(!scnGame.instance || ADOBase.controller.pauseMenu.gameObject.activeSelf) return;
+        if(ADOBase.controller.paused && AsyncInputManager.isActive) ADOBase.controller.UpdateInput();
         __instance.thumbnailMaker.gameObject.SetActive(true);
-        if (StandaloneFileBrowser.lastFrameCount == Time.frameCount)
-            return;
+        if(StandaloneFileBrowser.lastFrameCount == Time.frameCount) return;
         FixPrivateMethod.UpdateSteamCallbacks();
-        if (RDC.runningOnSteamDeck && !__instance.steamDeckWarningPassed && RDInput.cancelPress)
-            FixPrivateMethod.QuitToMenu();
+        if(RDC.runningOnSteamDeck && !__instance.steamDeckWarningPassed && RDInput.cancelPress) FixPrivateMethod.QuitToMenu();
         FixPrivateMethod.UpdateSelectedFloor();
         FixPrivateMethod.OttoUpdate();
-        if (___refreshBgSprites)
-            __instance.UpdateBackgroundSprites();
-        if (___refreshDecSprites)
-            __instance.UpdateDecorationObjects();
-        if (Input.GetKeyDown(KeyCode.Escape) && !FixPrivateMethod.paused()) {
-            __instance.SwitchToEditMode();
-        } else {
-            if ((double)Time.unscaledTime > (double)___backupTimer + (double)__instance.backupInterval) {
+        if(___refreshBgSprites) __instance.UpdateBackgroundSprites();
+        if(___refreshDecSprites) __instance.UpdateDecorationObjects();
+        if(Input.GetKeyDown(KeyCode.Escape) && !scrController.instance.paused) __instance.SwitchToEditMode();
+        else {
+            if(Time.unscaledTime > ___backupTimer + (double) __instance.backupInterval) {
                 ___backupTimer = Time.unscaledTime;
                 FixPrivateMethod.SaveBackup();
             }
-            if (__instance.eventSystem.currentInputModule is CustomStandaloneInputModule currentInputModule) {
+            if(__instance.eventSystem.currentInputModule is CustomStandaloneInputModule currentInputModule) {
                 PointerEventData pointerData = currentInputModule.GetPointerData();
                 bool flag = false;
-                if (pointerData != null && (UnityEngine.Object)pointerData.pointerCurrentRaycast.module != (UnityEngine.Object)null) {
+                if(pointerData != null && pointerData.pointerCurrentRaycast.module) {
                     GameObject gameObject = pointerData.pointerCurrentRaycast.gameObject;
-                    if ((UnityEngine.Object)gameObject != (UnityEngine.Object)null) {
+                    if(gameObject) {
                         Transform transform = gameObject.transform;
-                        while (!transform.TryGetComponent<ScrollRect>(out ScrollRect _)) {
+                        while(!transform.TryGetComponent(out ScrollRect _)) {
                             transform = transform.parent;
-                            if (!((UnityEngine.Object)transform != (UnityEngine.Object)null))
-                                goto label_23;
+                            if(!transform) goto label_23;
                         }
                         flag = true;
                     }
                 }
-            label_23:
-                if (__instance.prefsContainer.gameObject.activeInHierarchy || __instance.particleEditorContainer.gameObject.activeInHierarchy)
+                label_23:
+                if(__instance.prefsContainer.gameObject.activeInHierarchy || __instance.particleEditorContainer.gameObject.activeInHierarchy)
                     flag = true;
-                if (!flag) {
+                if(!flag) {
                     Vector2 mouseScrollDelta = RDInput.mouseScrollDelta;
-                    if ((double)Mathf.Abs(mouseScrollDelta.y) > 0.05000000074505806) {
-                        __instance.ZoomCamera(mouseScrollDelta.y, !Persistence.editorUseLegacyZoom);
-                    }
+                    if(Mathf.Abs(mouseScrollDelta.y) > 0.05000000074505806) __instance.ZoomCamera(mouseScrollDelta.y, !Persistence.editorUseLegacyZoom);
                 }
             }
             __instance.selectingFloorIDText.gameObject.SetActive(scnEditor.selectingFloorID);
-            if (__instance.userIsEditingAnInputField)
-                scnEditor.selectingFloorID = false;
-            if (!__instance.selectingFloorIDTextMoving) {
+            if(__instance.userIsEditingAnInputField) scnEditor.selectingFloorID = false;
+            if(!__instance.selectingFloorIDTextMoving) {
                 __instance.selectingFloorIDRectTransform.DOAnchorPosY(112.12f, 0.3f).SetEase<TweenerCore<Vector2, Vector2, VectorOptions>>(Ease.OutExpo).SetUpdate<TweenerCore<Vector2, Vector2, VectorOptions>>(true);
                 __instance.selectingFloorIDTextMoving = true;
             }
-            if (!scnEditor.selectingFloorID)
-                __instance.selectingFloorIDRectTransform.PositionY(0.0f);
-            if (__instance.playMode)
-                return;
+            if(!scnEditor.selectingFloorID) __instance.selectingFloorIDRectTransform.PositionY(0.0f);
+            if(__instance.playMode) return;
             FixPrivateMethod.HandleKeyboardActions();
             FixPrivateMethod.HandleMouseActions();
         }
-        
+
     }
-    
+
 
     [JAPatch(typeof(EditorSpeedIndicator), "UpdatePercentText", PatchType.Replace, false)]
-    public static void EditorSpeedIndicator_UpdatePercentText() {
-    }
+    public static void EditorSpeedIndicator_UpdatePercentText() { }
+
     [JAPatch(typeof(EditorSpeedIndicator), "ShiftSpeed", PatchType.Replace, false)]
-    public static void EditorSpeedIndicator_ShiftSpeed() {
-    }
+    public static void EditorSpeedIndicator_ShiftSpeed() { }
 }
