@@ -1,9 +1,13 @@
-﻿using JALib.Core;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using JALib.Core;
 using JALib.Core.Patch;
 using UnityEngine;
 using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
+using HarmonyLib;
 using SFB;
 using SmartEditor.FixLoad.CustomSaveState;
 using UnityEngine.EventSystems;
@@ -64,6 +68,25 @@ public class DeleteEditorSpeed() : Feature(Main.Instance, nameof(DeleteEditorSpe
             FixPrivateMethod.HandleMouseActions();
         }
 
+    }
+
+    [JAPatch(typeof(scnEditor), nameof(HandleMouseActions), PatchType.Transpiler, false)]
+    public static IEnumerable<CodeInstruction> HandleMouseActions(IEnumerable<CodeInstruction> instructions) {
+        List<CodeInstruction> codes = instructions.ToList();
+        for(int i = 0; i < codes.Count; i++) {
+            CodeInstruction code = codes[i];
+            if(code.operand is MethodInfo { Name : "get_userIsEditingAnInputField" }) {
+                for(int i2 = i; i2 < codes.Count; i2++) {
+                    if(code.operand is MethodInfo { Name: "get_holdingControl" }) {
+                        codes.RemoveRange(i - 1, i2 - i + 3);
+                        break;
+                    }
+                }
+                codes[i - 1].labels.Clear();
+                break;
+            }
+        }
+        return codes;
     }
 
 
