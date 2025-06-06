@@ -510,6 +510,7 @@
     <ItemGroup>
         <Compile Include="BGAMod.cs" />
         <Compile Include="BpmBeatCalculator.cs" />
+        <Compile Include="DeleteEditorSpeed.cs" />
         <Compile Include="FixLoad\CustomSaveState\ChangedEventCache.cs" />
         <Compile Include="FixLoad\CustomSaveState\ChangedFloorCache.cs" />
         <Compile Include="FixLoad\CustomSaveState\FixPrivateMethod.cs" />
